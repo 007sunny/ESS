@@ -13,6 +13,7 @@ import android.widget.CompoundButton;
 import android.widget.TextView;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 
@@ -78,7 +79,7 @@ public class DeviceListAdapter extends RecyclerView.Adapter<DeviceListAdapter.De
             int state = isChecked ? 1 : 0;
             int position = getAdapterPosition();
 //            if (mDeviceStatus[position] != state) {
-                new SetDeviceStateTask().execute(state, position,mDeviceNo[position]);
+            new SetDeviceStateTask().execute(state, position, mDeviceNo[position]);
 //            }
         }
     }
@@ -87,25 +88,32 @@ public class DeviceListAdapter extends RecyclerView.Adapter<DeviceListAdapter.De
 
         @Override
         protected Void doInBackground(Integer... params) {
+            HttpURLConnection urlConnection = null;
             try {
 
                 Uri builturi = Uri.parse(mContext.getString(R.string.base_url))
                         .buildUpon()
                         .appendPath("android-web-service")
-                        .appendPath("setDeviceState.php")
+                        .appendPath("handler.php")
+                        .appendQueryParameter("query", "setDeviceState")
                         .appendQueryParameter("state", String.valueOf(params[0]))
                         .appendQueryParameter("device_no", String.valueOf(params[2]))
                         .build();
                 URL url = new URL(builturi.toString());
                 Log.d("url", "url=" + url.toString());
 
-                HttpURLConnection urlConnection = (HttpURLConnection) url.openConnection();
+                urlConnection = (HttpURLConnection) url.openConnection();
                 urlConnection.connect();
 
-                mDeviceStatus[params[1]]=params[0];
+                InputStream input = urlConnection.getInputStream();
+                mDeviceStatus[params[1]] = params[0];
 
             } catch (IOException e) {
                 Log.e("Main Activity Fragment", "error", e);
+            } finally {
+                if (urlConnection != null) {
+                    urlConnection.disconnect();
+                }
             }
             return null;
         }

@@ -1,13 +1,19 @@
 package com.thevisionaries.electricitysurveillancesystem;
 
+import android.content.Context;
+import android.content.DialogInterface;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ProgressBar;
@@ -37,6 +43,7 @@ public class DeviceSwitchActivityFragment extends Fragment {
     int deviceCount = 0;
 
     public DeviceSwitchActivityFragment() {
+        setHasOptionsMenu(true);
     }
 
     @Override
@@ -58,8 +65,34 @@ public class DeviceSwitchActivityFragment extends Fragment {
         return rootView;
     }
 
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        if (item.getItemId() == android.R.id.home) {
+            getActivity().onBackPressed();
+            return true;
+        }
+        return super.onOptionsItemSelected(item);
+    }
+
     void refreshDeviceList(){
-        new FetchDevicesTask().execute();
+        final ConnectivityManager conMgr = (ConnectivityManager) getActivity().getSystemService(Context.CONNECTIVITY_SERVICE);
+        if (conMgr.getNetworkInfo(0).getState() == NetworkInfo.State.DISCONNECTED
+                && conMgr.getNetworkInfo(1).getState() == NetworkInfo.State.DISCONNECTED) {
+            AlertDialog dialog = new AlertDialog.Builder(getActivity()).create();
+            dialog.setTitle("Error");
+            dialog.setMessage("Network Connection Error");
+            dialog.setButton(DialogInterface.BUTTON_NEGATIVE, "Back", new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialogInterface, int i) {
+                    getActivity().onBackPressed();
+                }
+            });
+            dialog.show();
+            Log.d("state", "discinnected");
+        } else {
+            new FetchDevicesTask().execute();
+        }
+
     }
 
     class FetchDevicesTask extends AsyncTask<Void, Void, Void> {
@@ -88,7 +121,9 @@ public class DeviceSwitchActivityFragment extends Fragment {
                 Uri builturi = Uri.parse(getString(R.string.base_url))
                         .buildUpon()
                         .appendPath("android-web-service")
-                        .appendPath("getDevices.php").build();
+                        .appendPath("handler.php")
+                        .appendQueryParameter("query", "getDevices")
+                        .build();
                 URL url = new URL(builturi.toString());
                 Log.d("url","url="+url.toString());
 
